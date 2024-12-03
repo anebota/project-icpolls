@@ -24,7 +24,7 @@
 
     <!-- Header -->
     <header class="w3-display-container w3-content w3-wide" style="max-width:1500px;" id="home">
-        <img class="w3-image" src="https://ms-solutions-edu-web-java.s3.us-east-1.amazonaws.com/header-footer/header.jpg" alt="Architecture" width="1500" height="800">
+        <img class="w3-image" src="https://ms-solutions-edu-web-java.s3.us-east-1.amazonaws.com/header-footer/header-3.jpg" alt="Architecture" width="1500" height="800">
         <div class="w3-display-middle w3-margin-top w3-center">
             <h1 class="w3-xxlarge w3-text-white"><span class="w3-padding w3-red w3-opacity-min"><b>Zenith</b></span> <span
                     class="w3-hide-small w3-text-light-grey">| Technologies</span></h1>
