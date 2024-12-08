@@ -37,8 +37,8 @@ pipeline {
         stage('Docker Build') {
             steps {
                 script {
-                    sh 'docker --version'  // Verify Docker installation
-                    sh "docker build -t ${env.DOCKERHUB_REPO}:latest ."  // Build Docker image
+                    sh 'sudo docker --version'  // Verify Docker installation
+                    sh "sudo docker build -t ${env.DOCKERHUB_REPO}:latest ."  // Build Docker image
                 }
             }
         }
@@ -47,9 +47,9 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: "${env.DOCKERHUB_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
-                        sh 'docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD'
-                        sh "docker push ${env.DOCKERHUB_REPO}:latest"
-                        sh 'docker logout'
+                        sh 'sudo docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD'
+                        sh "sudo docker push ${env.DOCKERHUB_REPO}:latest"
+                        sh 'sudo docker logout'
                     }
                 }
             }
@@ -58,7 +58,7 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    sh "docker run --name ${env.UNIQUE_CONTAINER_NAME} --rm -d -p ${env.HOST_PORT}:${env.CONTAINER_PORT} ${env.DOCKERHUB_REPO}:latest"
+                    sh "sudo docker run --name ${env.UNIQUE_CONTAINER_NAME} --rm -d -p ${env.HOST_PORT}:${env.CONTAINER_PORT} ${env.DOCKERHUB_REPO}:latest"
                 }
             }
         }
@@ -67,9 +67,9 @@ pipeline {
     post {
         always {
             echo 'Cleaning up Docker containers and images...'
-            sh 'docker ps -a --filter "name=techvista-app" -q | xargs --no-run-if-empty docker stop || true'
-            sh 'docker ps -a --filter "name=techvista-app" -q | xargs --no-run-if-empty docker rm || true'
-            sh 'docker rmi $(docker images -q) || true'
+            sh 'sudo docker ps -a --filter "name=techvista-app" -q | xargs --no-run-if-empty docker stop || true'
+            sh 'sudo docker ps -a --filter "name=techvista-app" -q | xargs --no-run-if-empty docker rm || true'
+            sh 'sudo docker rmi $(docker images -q) || true'
         }
         success {
             echo 'Pipeline completed successfully!'
