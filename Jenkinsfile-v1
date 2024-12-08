@@ -1,15 +1,12 @@
 pipeline {
-    agent { label 'agent1' }  // Replace 'agent1' with the label of your agent
+    agent { label 'agent1' }  // Replace 'wsl-agent' with the label of your agent
 
     environment {
-        GITHUB_REPO_URL = 'https://github.com/ms-solutions-projects/zenith-app.git'
+        GITHUB_REPO_URL = 'https://github.com/ms-solutions-projects/techvista-app.git'
         BRANCH_NAME = 'main'  // Replace with your branch name if it's not 'main'
         GITHUB_CREDENTIALS_ID = 'github_access'  // Replace with your Jenkins GitHub credentials ID
         DOCKERHUB_CREDENTIALS_ID = 'dockerhub_cred'  // Replace with your Jenkins Docker Hub credentials ID
         DOCKERHUB_REPO = 'megastellas/zenithit-app'  // Replace with your Docker Hub repository
-        UNIQUE_CONTAINER_NAME = "techvista-app-${BUILD_ID}"  // Generate unique container name
-        CONTAINER_PORT = '8080'  // Change this as per the application requirements
-        HOST_PORT = "${8800 + BUILD_NUMBER}"  // Dynamically assign a host port
     }
 
     stages {
@@ -57,7 +54,7 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    sh "docker run --name ${env.UNIQUE_CONTAINER_NAME} --rm -d -p ${env.HOST_PORT}:${env.CONTAINER_PORT} ${env.DOCKERHUB_REPO}:latest"
+                    sh "docker run --name techvista-app --rm -d -p 8000:8080 ${env.DOCKERHUB_REPO}:latest"  // Run Docker container in detached mode
                 }
             }
         }
@@ -66,8 +63,7 @@ pipeline {
     post {
         always {
             echo 'Cleaning up Docker containers and images...'
-            sh 'docker ps -a --filter "name=techvista-app" -q | xargs --no-run-if-empty docker stop || true'
-            sh 'docker ps -a --filter "name=techvista-app" -q | xargs --no-run-if-empty docker rm || true'
+            sh 'docker rm $(docker ps -a -q) || true'
             sh 'docker rmi $(docker images -q) || true'
         }
         success {
