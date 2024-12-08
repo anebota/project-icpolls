@@ -2,14 +2,15 @@ pipeline {
     agent { label 'agent1' }  // Replace 'agent1' with the label of your agent
 
     environment {
-        GITHUB_REPO_URL = 'https://github.com/ms-solutions-projects/zenith-app.git'
+        GITHUB_REPO_URL = 'https://github.com/ms-solutions-projects/techvista-app.git'
         BRANCH_NAME = 'main'  // Replace with your branch name if it's not 'main'
         GITHUB_CREDENTIALS_ID = 'github_access'  // Replace with your Jenkins GitHub credentials ID
         DOCKERHUB_CREDENTIALS_ID = 'dockerhub_cred'  // Replace with your Jenkins Docker Hub credentials ID
         DOCKERHUB_REPO = 'megastellas/zenithit-app'  // Replace with your Docker Hub repository
         UNIQUE_CONTAINER_NAME = "techvista-app-${BUILD_ID}"  // Generate unique container name
         CONTAINER_PORT = '8080'  // Change this as per the application requirements
-        HOST_PORT = "${8800 + BUILD_NUMBER}"  // Dynamically assign a host port
+        BASE_PORT = 8000  // Base port to avoid conflicts
+        HOST_PORT = "${BASE_PORT + (BUILD_NUMBER % 1000)}"  // Ensure valid port within the range 8000-8999
     }
 
     stages {
