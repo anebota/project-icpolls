@@ -1,21 +1,21 @@
 pipeline {
-    agent { label 'agent1' }  // Replace 'wsl-agent' with the label of your agent
+    agent { label 'agent1' }
 
     environment {
         GITHUB_REPO_URL = 'https://github.com/ms-solutions-projects/zenith-app.git'
-        BRANCH_NAME = 'main'  // Replace with your branch name if it's not 'main'
-        GITHUB_CREDENTIALS_ID = 'github_access'  // Replace with your Jenkins GitHub credentials ID
-        DOCKERHUB_CREDENTIALS_ID = 'dockerhub_cred'  // Replace with your Jenkins Docker Hub credentials ID
-        DOCKERHUB_REPO = 'megastellas/zenithit-app'  // Replace with your Docker Hub repository
-        SNYK_TOKEN = credentials('snyk-token')  // Add Snyk API token stored in Jenkins credentials
+        BRANCH_NAME = 'main'
+        GITHUB_CREDENTIALS_ID = 'github_access'
+        DOCKERHUB_CREDENTIALS_ID = 'dockerhub_cred'
+        DOCKERHUB_REPO = 'megastellas/zenithit-app'
+        SNYK_TOKEN = credentials('snyk-token')  // Ensure this ID matches the configured Jenkins credential
     }
 
     stages {
         stage('Agent Details') {
             steps {
                 echo "Running on agent: ${env.NODE_NAME}"
-                sh 'uname -a'  // Print system information
-                sh 'whoami'    // Print the current user
+                sh 'uname -a'
+                sh 'whoami'
             }
         }
 
@@ -27,15 +27,15 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'mvn clean package'  // Simple Maven build
+                sh 'mvn clean package'
             }
         }
 
         stage('Docker Build') {
             steps {
                 script {
-                    sh 'sudo docker --version'  // Verify Docker installation
-                    sh "sudo docker build -t ${env.DOCKERHUB_REPO}:latest ."  // Build Docker image
+                    sh 'sudo docker --version'
+                    sh "sudo docker build -t ${env.DOCKERHUB_REPO}:latest ."
                 }
             }
         }
@@ -43,17 +43,10 @@ pipeline {
         stage('Snyk Scan') {
             steps {
                 script {
-                    // Install Snyk CLI if not already installed
-                    sh 'npm install -g snyk'
-                    
-                    // Authenticate with Snyk using API token
-                    sh 'snyk auth $SNYK_TOKEN'
-
-                    // Perform Snyk dependency scan
-                    sh 'snyk test'
-
-                    // Perform Snyk Docker image scan
-                    sh "snyk container test ${env.DOCKERHUB_REPO}:latest"
+                    sh 'npm install -g snyk'  // Install Snyk CLI
+                    sh 'snyk auth $SNYK_TOKEN'  // Authenticate with Snyk
+                    sh 'snyk test'  // Test for dependency vulnerabilities
+                    sh "snyk container test ${env.DOCKERHUB_REPO}:latest"  // Test Docker image for vulnerabilities
                 }
             }
         }
@@ -73,7 +66,7 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    sh "sudo docker run --name zenith-app-v1 --rm -d -p 8810:8080 ${env.DOCKERHUB_REPO}:latest"  // Run Docker container in detached mode
+                    sh "sudo docker run --name zenith-app-v1 --rm -d -p 8100:8080 ${env.DOCKERHUB_REPO}:latest"
                 }
             }
         }
@@ -81,9 +74,11 @@ pipeline {
 
     post {
         always {
-            echo 'Cleaning up Docker containers and images...'
-            sh 'sudo docker rm $(docker ps -a -q) || true'
-            sh 'sudo docker rmi $(docker images -q) || true'
+            node {
+                echo 'Cleaning up Docker containers and images...'
+                sh 'sudo docker rm $(docker ps -a -q) || true'
+                sh 'sudo docker rmi $(docker images -q) || true'
+            }
         }
         success {
             echo 'Pipeline completed successfully!'
