@@ -74,7 +74,7 @@ pipeline {
 
     post {
         always {
-            node {
+            node('agent1') {  // Specify the same agent label as used in the pipeline
                 echo 'Cleaning up Docker containers and images...'
                 sh 'sudo docker rm $(docker ps -a -q) || true'
                 sh 'sudo docker rmi $(docker images -q) || true'
