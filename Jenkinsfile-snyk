@@ -42,11 +42,11 @@ pipeline {
 
         stage('Snyk Scan') {
             steps {
-                // Use the Snyk plugin to scan dependencies
-                snykSecurity testMode: 'test'
+                // Use Snyk plugin to scan dependencies with specified severity level
+                snykSecurity severity: 'low'
 
-                // Use the Snyk plugin to scan the built Docker image
-                snykContainer testMode: 'test', dockerImage: "${env.DOCKERHUB_REPO}:latest"
+                // Use Snyk plugin to scan Docker image with specified severity level
+                snykContainer severity: 'low', dockerImage: "${env.DOCKERHUB_REPO}:latest"
             }
         }
 
