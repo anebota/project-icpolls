@@ -42,12 +42,11 @@ pipeline {
 
         stage('Snyk Scan') {
             steps {
-                script {
-                    sh 'npm install -g snyk'  // Install Snyk CLI
-                    sh 'snyk auth $SNYK_TOKEN'  // Authenticate with Snyk
-                    sh 'snyk test'  // Test for dependency vulnerabilities
-                    sh "snyk container test ${env.DOCKERHUB_REPO}:latest"  // Test Docker image for vulnerabilities
-                }
+                // Use the Snyk plugin to scan dependencies
+                snykSecurity testMode: 'test'
+
+                // Use the Snyk plugin to scan the built Docker image
+                snykContainer testMode: 'test', dockerImage: "${env.DOCKERHUB_REPO}:latest"
             }
         }
 
@@ -74,9 +73,9 @@ pipeline {
 
     post {
         always {
-            node('agent1') {  // Specify the same agent label as used in the pipeline
+            node('agent1') {
                 echo 'Cleaning up Docker containers and images...'
-                sh 'sudo docker rm $(docker ps -a -q) || true'
+                sh 'sudo docker rm -f $(docker ps -a -q) || true'
                 sh 'sudo docker rmi $(docker images -q) || true'
             }
         }
