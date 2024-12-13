@@ -1,0 +1,96 @@
+---
+# Purpose: Set up the Kubernetes master node and essential tools.
+
+- name: Initialize Master Node Playbook
+  hosts: master
+  become: yes
+  vars:
+    docker_repository_url: "https://download.docker.com/linux/ubuntu/gpg"
+    k8s_repo_url: "https://packages.cloud.google.com/apt/doc/apt-key.gpg"
+    jenkins_repo_url: "https://pkg.jenkins.io/debian-stable/jenkins.io.key"
+    grafana_repo_url: "https://packages.grafana.com/gpg.key"
+  tasks:
+    - name: Update and upgrade system packages
+      apt:
+        update_cache: yes
+        upgrade: dist
+        force_apt_get: yes
+
+    - name: Install basic tools
+      apt:
+        name:
+          - curl
+          - gnupg
+          - software-properties-common
+          - apt-transport-https
+          - ca-certificates
+          - git
+        state: present
+
+    - name: Install Docker
+      apt:
+        name: docker.io
+        state: present
+      notify:
+        - Restart Docker
+
+    - name: Add user to Docker group
+      user:
+        name: "{{ ansible_user }}"
+        groups: docker
+        append: yes
+
+    - name: Install Kubernetes tools (kubeadm, kubectl, kubelet)
+      shell: |
+        curl -fsSL {{ k8s_repo_url }} | apt-key add -
+        echo "deb https://apt.kubernetes.io/ kubernetes-xenial main" > /etc/apt/sources.list.d/kubernetes.list
+        apt-get update && apt-get install -y kubelet kubeadm kubectl
+      args:
+        executable: /bin/bash
+
+    - name: Initialize Kubernetes master node
+      shell: |
+        kubeadm init --pod-network-cidr=0.0.0.0/0
+        mkdir -p $HOME/.kube
+        cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+        chown $(id -u):$(id -g) $HOME/.kube/config
+      when: ansible_hostname == 'master'
+
+    - name: Install Jenkins
+      shell: |
+        curl -fsSL {{ jenkins_repo_url }} | apt-key add -
+        echo "deb http://pkg.jenkins.io/debian-stable binary/" > /etc/apt/sources.list.d/jenkins.list
+        apt-get update && apt-get install -y jenkins
+      notify:
+        - Restart Jenkins
+
+    - name: Install Prometheus
+      shell: |
+        docker run -d --name prometheus \
+          -p 9090:9090 \
+          prom/prometheus
+
+    - name: Install Grafana
+      shell: |
+        curl -fsSL {{ grafana_repo_url }} | apt-key add -
+        echo "deb https://packages.grafana.com/oss/deb stable main" > /etc/apt/sources.list.d/grafana.list
+        apt-get update && apt-get install -y grafana
+      notify:
+        - Start Grafana
+
+  handlers:
+    - name: Restart Docker
+      service:
+        name: docker
+        state: restarted
+
+    - name: Restart Jenkins
+      service:
+        name: jenkins
+        state: restarted
+
+    - name: Start Grafana
+      service:
+        name: grafana-server
+        state: started
+        enabled: yes
