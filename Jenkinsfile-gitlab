@@ -1,0 +1,99 @@
+pipeline {
+    agent { label 'agent1' }  // Replace 'wsl-agent' with the label of your agent
+
+    environment {
+        GITHUB_REPO_URL = 'https://github.com/ms-solutions-projects/zenith-app.git'
+        BRANCH_NAME = 'main'  // Replace with your branch name if it's not 'main'
+        GITHUB_CREDENTIALS_ID = 'github_access'  // Replace with your Jenkins GitHub credentials ID
+        DOCKERHUB_CREDENTIALS_ID = 'dockerhub_cred'  // Replace with your Jenkins Docker Hub credentials ID
+        DOCKERHUB_REPO = 'megastellas/zenithit-app'  // Replace with your Docker Hub repository
+        GITLAB_REPO_URL = 'https://gitlab.com/ms-solutions/ZenithIT.git'  // GitLab repository for artifacts
+        GITLAB_CREDENTIALS_ID = 'gitlab-creds'  // Jenkins credentials ID for GitLab
+        ARTIFACTS_DIR = 'target'  // Directory containing artifacts to upload
+    }
+
+    stages {
+        stage('Agent Details') {
+            steps {
+                echo "Running on agent: ${env.NODE_NAME}"
+                sh 'uname -a'  // Print system information
+                sh 'whoami'    // Print the current user
+            }
+        }
+
+        stage('Clone Repository') {
+            steps {
+                git branch: "${env.BRANCH_NAME}", url: "${env.GITHUB_REPO_URL}", credentialsId: "${env.GITHUB_CREDENTIALS_ID}"
+            }
+        }
+
+        stage('Build') {
+            steps {
+                sh 'mvn clean package'  // Simple Maven build
+            }
+        }
+
+        stage('Docker Build') {
+            steps {
+                script {
+                    sh 'sudo docker --version'  // Verify Docker installation
+                    sh "sudo docker build -t ${env.DOCKERHUB_REPO}:latest ."  // Build Docker image
+                }
+            }
+        }
+
+        stage('Docker Push') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: "${env.DOCKERHUB_CREDENTIALS_ID}", usernameVariable: 'DOCKER_USERNAME', passwordVariable: 'DOCKER_PASSWORD')]) {
+                        sh 'sudo docker login -u $DOCKER_USERNAME -p $DOCKER_PASSWORD'
+                        sh "sudo docker push ${env.DOCKERHUB_REPO}:latest"
+                        sh 'sudo docker logout'
+                    }
+                }
+            }
+        }
+
+        stage('Run Docker Container') {
+            steps {
+                script {
+                    sh "sudo docker run --name techvista-app-v1 --rm -d -p 8800:8080 ${env.DOCKERHUB_REPO}:latest"  // Run Docker container in detached mode
+                }
+            }
+        }
+
+        stage('Upload Artifacts to GitLab') {
+            steps {
+                script {
+                    withCredentials([usernamePassword(credentialsId: "${env.GITLAB_CREDENTIALS_ID}", usernameVariable: 'GITLAB_USERNAME', passwordVariable: 'GITLAB_PASSWORD')]) {
+                        // Configure Git credentials
+                        sh """
+                        git config --global user.name "${GITLAB_USERNAME}"
+                        git config --global user.email "${GITLAB_USERNAME}@gitlab.com"
+                        git clone ${env.GITLAB_REPO_URL} gitlab-artifacts
+                        cd gitlab-artifacts
+                        cp -r ../${env.ARTIFACTS_DIR}/* .
+                        git add .
+                        git commit -m "Upload build artifacts from Jenkins pipeline"
+                        git push https://${GITLAB_USERNAME}:${GITLAB_PASSWORD}@gitlab.com/your-group/zenith-app-artifacts.git main
+                        """
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo 'Cleaning up Docker containers and images...'
+            sh 'sudo docker rm $(docker ps -a -q) || true'
+            sh 'sudo docker rmi $(docker images -q) || true'
+        }
+        success {
+            echo 'Pipeline completed successfully!'
+        }
+        failure {
+            echo 'Pipeline failed!'
+        }
+    }
+}

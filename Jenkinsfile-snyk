@@ -40,15 +40,16 @@ pipeline {
             }
         }
 
-        stage('Snyk Scan') {
-            steps {
-                // Use Snyk plugin to scan dependencies with specified severity level
-                snykSecurity severity: 'low'
-
-                // Use Snyk plugin to scan Docker image with specified severity level
-                snykContainer severity: 'low', dockerImage: "${env.DOCKERHUB_REPO}:latest"
-            }
-        }
+        stage('Test') {
+      steps {
+        echo 'Testing...'
+        snykSecurity(
+          snykInstallation: 'snyk-token',
+          snykTokenId: '<Your Snyk API Token ID>',
+          // place other parameters here
+        )
+      }
+    }
 
         stage('Docker Push') {
             steps {
