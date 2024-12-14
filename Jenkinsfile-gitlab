@@ -8,7 +8,7 @@ pipeline {
         DOCKERHUB_CREDENTIALS_ID = 'dockerhub_cred'  // Replace with your Jenkins Docker Hub credentials ID
         DOCKERHUB_REPO = 'megastellas/zenithit-app'  // Replace with your Docker Hub repository
         GITLAB_REPO_URL = 'https://gitlab.com/ms-solutions/ZenithIT.git'  // GitLab repository for artifacts
-        GITLAB_CREDENTIALS_ID = 'gitlab-creds'  // Jenkins credentials ID for GitLab
+        GITLAB_CREDENTIALS_ID = 'gitlab_token'  // Jenkins credentials ID for GitLab
         ARTIFACTS_DIR = 'target'  // Directory containing artifacts to upload
     }
 
