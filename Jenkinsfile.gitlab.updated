@@ -1,25 +1,23 @@
 pipeline {
-    agent { label 'agent1' }  // Replace 'wsl-agent' with the label of your agent
+    agent { label 'agent1' }
 
     environment {
         GITHUB_REPO_URL = 'https://github.com/ms-solutions-projects/zenith-app.git'
-        BRANCH_NAME = 'main'  // Replace with your branch name if it's not 'main'
-        GITHUB_CREDENTIALS_ID = 'github_access'  // Replace with your Jenkins GitHub credentials ID
-        DOCKERHUB_CREDENTIALS_ID = 'dockerhub_cred'  // Replace with your Jenkins Docker Hub credentials ID
-        DOCKERHUB_REPO = 'megastellas/zenithit-app'  // Replace with your Docker Hub repository
-        GITLAB_REPO_URL = 'https://gitlab.com/ms-solutions/ZenithIT.git'  // GitLab repository for artifacts
-        GITLAB_CREDENTIALS_ID = 'gitlab_token'  // Jenkins credentials ID for GitLab
-        ARTIFACTS_DIR = 'target'  // Directory containing artifacts to upload
-        GITLAB_USERNAME = 'ms-megastellas'
-        GITLAB_PASSWORD = 'fils-dianetics-docken'
+        BRANCH_NAME = 'main'
+        GITHUB_CREDENTIALS_ID = 'github_access'
+        DOCKERHUB_CREDENTIALS_ID = 'dockerhub_cred'
+        DOCKERHUB_REPO = 'megastellas/zenithit-app'
+        GITLAB_REPO_URL = 'https://gitlab.com/ms-solutions/zenith-app-artifacts.git'
+        GITLAB_CREDENTIALS_ID = 'gitlab_token'
+        ARTIFACTS_DIR = 'target'
     }
 
     stages {
         stage('Agent Details') {
             steps {
                 echo "Running on agent: ${env.NODE_NAME}"
-                sh 'uname -a'  // Print system information
-                sh 'whoami'    // Print the current user
+                sh 'uname -a'
+                sh 'whoami'
             }
         }
 
@@ -31,15 +29,15 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'mvn clean package'  // Simple Maven build
+                sh 'mvn clean package'
             }
         }
 
         stage('Docker Build') {
             steps {
                 script {
-                    sh 'sudo docker --version'  // Verify Docker installation
-                    sh "sudo docker build -t ${env.DOCKERHUB_REPO}:latest ."  // Build Docker image
+                    sh 'sudo docker --version'
+                    sh "sudo docker build -t ${env.DOCKERHUB_REPO}:latest ."
                 }
             }
         }
@@ -59,7 +57,7 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    sh "sudo docker run --name zenith-app-v4 --rm -d -p 8200:8080 ${env.DOCKERHUB_REPO}:latest"  // Run Docker container in detached mode
+                    sh "sudo docker run --name zenith-app-v4 --rm -d -p 8200:8080 ${env.DOCKERHUB_REPO}:latest"
                 }
             }
         }
@@ -68,16 +66,15 @@ pipeline {
             steps {
                 script {
                     withCredentials([usernamePassword(credentialsId: "${env.GITLAB_CREDENTIALS_ID}", usernameVariable: 'GITLAB_USERNAME', passwordVariable: 'GITLAB_PASSWORD')]) {
-                        // Configure Git credentials
                         sh """
-                        git config --global user.name "${GITLAB_USERNAME}"
-                        git config --global user.email "${GITLAB_USERNAME}@gitlab.com"
-                        git clone ${env.GITLAB_REPO_URL} gitlab-artifacts
-                        cd gitlab-artifacts
+                        mkdir gitlab-artifacts-${BUILD_ID}
+                        cd gitlab-artifacts-${BUILD_ID}
+                        git init
+                        git remote add origin ${env.GITLAB_REPO_URL}
                         cp -r ../${env.ARTIFACTS_DIR}/* .
                         git add .
-                        git commit -m "Upload build artifacts from Jenkins pipeline"
-                        git push https://${GITLAB_USERNAME}:${GITLAB_PASSWORD}@gitlab.com/ms-solutions/zenith-app-artifacts.git main
+                        git commit -m "Upload build artifacts from Jenkins pipeline [BUILD_ID: ${BUILD_ID}]"
+                        git push https://${GITLAB_USERNAME}:${GITLAB_PASSWORD}@${env.GITLAB_REPO_URL.replace('https://', '')}
                         """
                     }
                 }
@@ -88,8 +85,8 @@ pipeline {
     post {
         always {
             echo 'Cleaning up Docker containers and images...'
-            sh 'sudo docker rm $(docker ps -a -q) || true'
-            sh 'sudo docker rmi $(docker images -q) || true'
+            sh 'sudo docker ps -a | grep zenith-app-v4 && sudo docker stop zenith-app-v4 || true'
+            sh "sudo docker rmi ${env.DOCKERHUB_REPO}:latest || true"
         }
         success {
             echo 'Pipeline completed successfully!'
