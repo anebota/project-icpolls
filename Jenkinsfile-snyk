@@ -44,8 +44,8 @@ pipeline {
       steps {
         echo 'Testing...'
         snykSecurity(
-          snykInstallation: 'snyk-token',
-          snykTokenId: '<Your Snyk API Token ID>',
+          snykInstallation: 'snyk',
+          snykTokenId: 'snyk-token',
           // place other parameters here
         )
       }
@@ -66,7 +66,7 @@ pipeline {
         stage('Run Docker Container') {
             steps {
                 script {
-                    sh "sudo docker run --name zenith-app-v1 --rm -d -p 8100:8080 ${env.DOCKERHUB_REPO}:latest"
+                    sh "sudo docker run --name zenith-app-v7 --rm -d -p 8110:8080 ${env.DOCKERHUB_REPO}:latest"
                 }
             }
         }
