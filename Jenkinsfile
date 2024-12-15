@@ -2,7 +2,7 @@ pipeline {
     agent { label 'agent1' }  // Replace 'agent1' with the label of your agent
 
     environment {
-        GITHUB_REPO_URL = 'https://github.com/ms-solutions-projects/zenith-app.git'
+        GITHUB_REPO_URL = 'https://github.com/anebota/project-icpolls.git'
         BRANCH_NAME = 'main'  // Replace with your branch name if it's not 'main'
         GITHUB_CREDENTIALS_ID = 'github_access'  // Replace with your Jenkins GitHub credentials ID
         DOCKERHUB_CREDENTIALS_ID = 'dockerhub_cred'  // Replace with your Jenkins Docker Hub credentials ID
